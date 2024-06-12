@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Car Game</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div id="scorecard">
+      <h1>Score: <span id="score">0</span></h1>
+      <h2>High Score: <span id="high-score">0</span></h2>
+    </div>
+    <div class="game-over">
+      <span id="final-score"></span>
+      <button id="restart">Restart</button>
+    </div>
+    <canvas id="canvas"></canvas>
+    <img id="car" src="car.png" alt="car" />
+    <img id="enemy" src="car.png" alt="enemy" />
+    <script src="src/main.ts" type="module"></script>
+  </body>
+</html>

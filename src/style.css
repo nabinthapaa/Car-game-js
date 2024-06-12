@@ -1,0 +1,16 @@
+#car,
+#enemy {
+  display: none;
+}
+canvas {
+  display: block;
+  margin: auto;
+  border: 1px solid gray;
+}
+#scorecard {
+  position: absolute;
+  top: 4%;
+  left: 20%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
