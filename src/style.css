@@ -1,7 +1,12 @@
+* {
+  margin: 0;
+  padding: 0;
+}
 body {
   background: url("/desert.jpg");
   background-repeat: no-repeat;
   background-size: cover;
+  backdrop-filter: blur(5px);
 }
 #car,
 #enemy {
@@ -12,7 +17,7 @@ canvas {
   margin: auto;
   border: 1px solid gray;
   background: url("/road.png");
-  height: 98vh;
+  height: 100vh;
 }
 #scorecard {
   position: absolute;

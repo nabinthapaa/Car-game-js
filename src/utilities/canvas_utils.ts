@@ -1,5 +1,5 @@
 import { GAME_CONSTANTS } from "../constants/constants";
-import { Coords } from "../types/types";
+import { Coords, EnemyCar } from "../types/types";
 import { getRandomRange } from "./utils";
 
 export function drawScore(ctx: CanvasRenderingContext2D, _score: number) {
@@ -55,44 +55,62 @@ export function drawCar(
 
 export function drawEnemy(
   ctx: CanvasRenderingContext2D,
-  enemy_cars: Coords[],
-  enemy_cars_images: HTMLImageElement[]
+  enemy_cars: EnemyCar[]
 ) {
   for (let i = 0; i < enemy_cars.length; i++) {
-    drawCar(ctx, enemy_cars_images[3], enemy_cars[i].x, enemy_cars[i].y);
+    drawCar(ctx, enemy_cars[i].image, enemy_cars[i].x, enemy_cars[i].y);
   }
 }
 
 export function getRandomCoords(
   ctx: CanvasRenderingContext2D,
-  enemy_cars: Coords[]
-): { x: number; y: number } {
+  enemy_cars: EnemyCar[],
+  multiplier: number = 1
+): Coords | undefined {
   let x: number;
   let y: number;
-  let attempts = 0;
-
+  let overlaps = false;
+  multiplier = multiplier || 1;
   do {
-    x = getRandomRange(0, ctx.canvas.width - GAME_CONSTANTS.SCALED_WIDTH);
-    y = getRandomRange(-1 * ctx.canvas.height, 0);
-    let overlaps = false;
+    x = getRandomRange(
+      multiplier * 5,
+      ctx.canvas.width - GAME_CONSTANTS.IMAGE_WIDTH - 100
+    );
+    y = getRandomRange(multiplier * -20 - ctx.canvas.height, 0);
     for (let i = 0; i < enemy_cars.length; i++) {
-      const aLeft = x;
-      const aRight = x + GAME_CONSTANTS.SCALED_WIDTH;
-      const aTop = y;
-      const aBottom = y + GAME_CONSTANTS.SCALED_HEIGHT;
-
-      const bLeft = enemy_cars[i].x;
-      const bRight = enemy_cars[i].x + GAME_CONSTANTS.SCALED_WIDTH;
-      const bTop = enemy_cars[i].y;
-      const bBottom = enemy_cars[i].y + GAME_CONSTANTS.SCALED_HEIGHT;
-      overlaps =
-        aLeft < bRight && aRight > bLeft && aTop < bBottom && aBottom > bTop;
-      if (overlaps) break;
+      if (checkCollision({ x, y }, enemy_cars[i])) {
+        overlaps = true;
+        break;
+      }
     }
     if (!overlaps) {
       return { x, y };
     }
+  } while (true && !overlaps);
+}
 
-    attempts++;
-  } while (true);
+export function moveBg(ctx: CanvasRenderingContext2D, bgY: number, Y: number) {
+  Y += 1;
+  if (bgY >= ctx.canvas.height) {
+    bgY = 0;
+  }
+}
+
+export function checkCollision(car: Coords, enemyCar: EnemyCar) {
+  const carLeft = car.x;
+  const carRight = car.x + GAME_CONSTANTS.SCALED_WIDTH;
+  const carTop = car.y;
+  const carBottom = car.y + GAME_CONSTANTS.SCALED_HEIGHT;
+
+  const enemyCarLeft = enemyCar.x;
+  const enemyCarRight = enemyCar.x + GAME_CONSTANTS.SCALED_WIDTH;
+  const enemyCarTop = enemyCar.y;
+  const enemyCarBottom = enemyCar.y + GAME_CONSTANTS.SCALED_HEIGHT;
+
+  return (
+    carLeft <= enemyCarRight &&
+    carRight >= enemyCarLeft &&
+    carTop <= enemyCarBottom &&
+    carBottom >= enemyCarTop
+  );
 }

@@ -6,6 +6,7 @@ import {
   default as enemy_car_3,
 } from "/enemy-car-2.png";
 import enemy_car_4 from "/enemy-car-4.png";
+import enemy_car_5 from "/enemy-car-5.png";
 import road from "/road-texture4.png";
 
 import {
@@ -13,8 +14,9 @@ import {
   CANVAS_WIDTH,
   GAME_CONSTANTS,
 } from "./constants/constants";
-import { Coords } from "./types/types";
+import { EnemyCar } from "./types/types";
 import {
+  checkCollision,
   drawCar,
   drawEnemy,
   drawHighScore,
@@ -42,6 +44,7 @@ const enemy_cars_images = [
   enemy_car_2,
   enemy_car_3,
   enemy_car_4,
+  enemy_car_5,
 ].map((src) => {
   const img = new Image();
   img.src = src;
@@ -52,8 +55,13 @@ let road_img = new Image();
 road_img.src = road;
 
 canvas.width = CANVAS_WIDTH;
-canvas.height = CANVAS_HEIGHT;
+canvas.height =
+  parseInt(getComputedStyle(document.body).height) || CANVAS_HEIGHT;
 canvas.style.background = road;
+
+road_img.onload = () => {
+  ctx.drawImage(road_img, 0, 0, canvas.width, canvas.height);
+};
 
 let carX = canvas.width / 2 - GAME_CONSTANTS.SCALED_WIDTH / 2;
 let carY = canvas.height - GAME_CONSTANTS.SCALED_HEIGHT;
@@ -65,49 +73,54 @@ const activeKeys = new Set();
 score.innerText = String(_score);
 highScoreElement.innerText = String(highScore);
 
-const enemy_cars: Coords[] = [];
-function generateEnemyCars() {
+let enemy_cars: EnemyCar[] = [];
+function fillEnemyCars() {
+  enemy_cars.length = 5;
   for (let i = 0; i < 5; i++) {
-    enemy_cars.push({
-      x: getRandomRange(0, canvas.width),
-      y: getRandomRange(-500, 0),
-    });
+    enemy_cars[i] = {
+      x: 0,
+      y: 0,
+      image: enemy_cars_images[i],
+    };
+  }
+}
+
+function generateEnemyCars() {
+  fillEnemyCars();
+  for (let i = 0; i < 5; i++) {
+    enemy_cars[i].y =
+      getRandomCoords(ctx, enemy_cars, i)?.x || getRandomRange(-500, 0);
+    enemy_cars[i].x =
+      getRandomCoords(ctx, enemy_cars, i)?.y ||
+      getRandomRange(
+        0 + GAME_CONSTANTS.SCALED_WIDTH,
+        canvas.width - GAME_CONSTANTS.SCALED_WIDTH
+      );
   }
 }
 generateEnemyCars();
 
-function moveEnemy(delta: number) {
+function moveEnemy() {
   for (let i = 0; i < enemy_cars.length; i++) {
-    enemy_cars[i].y += clamp((1 * delta * gameSpeed) / 10, 0, 3);
+    enemy_cars[i].y += clamp(gameSpeed, 0, 3);
     if (enemy_cars[i].y >= canvas.height) {
       _score++;
       enemy_cars[i].y =
-        getRandomCoords(ctx, enemy_cars)?.y || getRandomRange(-500, 0);
+        getRandomCoords(ctx, enemy_cars, i)?.y || getRandomRange(-500, 0);
       enemy_cars[i].x =
-        getRandomCoords(ctx, enemy_cars)?.x ||
+        getRandomCoords(ctx, enemy_cars, i)?.x ||
         getRandomRange(0, canvas.width - GAME_CONSTANTS.SCALED_WIDTH);
     }
-    drawCar(ctx, enemy_cars_images[3], enemy_cars[i].x, enemy_cars[i].y);
+    drawCar(ctx, enemy_cars[i].image, enemy_cars[i].x, enemy_cars[i].y);
   }
 }
 
 function detectCollsion() {
-  const { SCALED_HEIGHT, SCALED_WIDTH } = GAME_CONSTANTS;
   for (let i = 0; i < enemy_cars.length; i++) {
-    if (
-      carX < enemy_cars[i].x + SCALED_WIDTH &&
-      carX + SCALED_WIDTH > enemy_cars[i].x &&
-      carY < enemy_cars[i].y + SCALED_HEIGHT &&
-      carY + SCALED_HEIGHT > enemy_cars[i].y
-    ) {
+    if (checkCollision({ x: carX, y: carY }, enemy_cars[i])) {
       animationId && cancelAnimationFrame(animationId);
       gameSpeed = 0;
       isGameOver = true;
-      if (_score > highScore) {
-        highScore = _score;
-        highScoreElement.innerText = String(highScore);
-        localStorage.setItem("highScore", String(highScore));
-      }
       gameOver();
       drawCar(ctx, car_image, carX, carY);
     }
@@ -121,18 +134,13 @@ function gameOver() {
   gameOverScreen.style.display = "block";
 }
 
-let last_time = Date.now();
 function gameLoop() {
   if (isGameOver) return;
-  let current_time = Date.now();
-  let delta = current_time - last_time;
-  last_time = current_time;
-
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   drawRoad(ctx, road_img);
   updateCarPosition();
-  drawEnemy(ctx, enemy_cars, enemy_cars_images);
-  moveEnemy(delta);
+  drawEnemy(ctx, enemy_cars);
+  moveEnemy();
   drawScore(ctx, _score);
   drawHighScore(ctx, highScore);
   detectCollsion();
