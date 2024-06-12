@@ -4,8 +4,10 @@ import car from "/car.png";
 const canvas = document.querySelector<HTMLCanvasElement>("#canvas")!;
 const score = document.querySelector<HTMLSpanElement>("#score")!;
 const restart = document.querySelector<HTMLButtonElement>("#restart")!;
+const start_button = document.querySelector<HTMLButtonElement>("#start")!;
 const highScoreElement =
   document.querySelector<HTMLSpanElement>("#high-score")!;
+//@ts-ignore
 let highScore: number = parseInt(localStorage.getItem("highScore")) || 0;
 const ctx = canvas.getContext("2d")!;
 const car_image = new Image();
@@ -72,33 +74,28 @@ generateEnemyCars();
 function getRandomCoords(enemy_cars: any[]) {
   let x: number;
   let y: number;
-  let validPosition: boolean;
-  let maxAttempts = 100; // To avoid infinite loops in case of too many cars
+  let maxAttempts = 100;
   let attempts = 0;
 
   do {
     x = getRandomRange(0, canvas.width - scale * image_width);
     y = getRandomRange(-1 * canvas.height, 0);
 
-    validPosition = enemy_cars.every((car) => {
-      const carRight = car.x + scale * image_width;
-      const carBottom = car.y + scale * image_height;
-      const newCarRight = x + scale * image_width;
-      const newCarBottom = y + scale * image_height;
-
-      // Check if there is an overlap
-      return (
-        newCarRight <= car.x || // new car is to the left of existing car
-        x >= carRight || // new car is to the right of existing car
-        newCarBottom <= car.y || // new car is above existing car
-        y >= carBottom // new car is below existing car
-      );
-    });
-
     attempts++;
-  } while (!validPosition && attempts < maxAttempts);
-
-  if (!validPosition) {
+  } while (
+    attempts < maxAttempts ||
+    enemy_cars.some((car) => {
+      return (
+        x < car.x + scale * image_width &&
+        x + scale * image_width > car.x &&
+        y < car.y + scale * image_height &&
+        y + scale * image_height > car.y &&
+        y - scale * image_height > -1 * car.y - 400 &&
+        x - scale * image_width > car.x + 400
+      );
+    })
+  );
+  if (attempts >= maxAttempts) {
     return;
   }
 
@@ -120,7 +117,7 @@ function clamp(value: number, min: number, max: number): number {
 
 function moveEnemy() {
   for (let i = 0; i < enemy_cars.length; i++) {
-    enemy_cars[i].y += clamp(1 * gameSpeed, 0, 5);
+    enemy_cars[i].y += clamp(1 * gameSpeed, 0, 3);
     if (enemy_cars[i].y >= canvas.height) {
       _score++;
       enemy_cars[i].y =
@@ -149,6 +146,7 @@ function detectCollsion() {
         localStorage.setItem("highScore", String(highScore));
       }
       gameOver();
+      drawCar(carX, carY);
     }
   }
 }
@@ -158,7 +156,7 @@ function gameOver() {
   const gameOverScreen = document.querySelector<HTMLDivElement>(".game-over")!;
   const finalScore = document.querySelector<HTMLSpanElement>("#final-score")!;
   finalScore.innerText = String(_score);
-  gameOverScreen.style.display = "flex";
+  gameOverScreen.style.display = "block";
 }
 
 function gameLoop() {
@@ -168,13 +166,13 @@ function gameLoop() {
   updateCarPosition();
   drawEnemy();
   moveEnemy();
+  drawScore();
+  drawHighScore();
   detectCollsion();
   gameSpeed *= 1.01;
   score.innerText = String(_score);
   animationId = requestAnimationFrame(gameLoop);
 }
-
-gameLoop();
 
 function updateCarPosition() {
   if (isGameOver) return;
@@ -183,7 +181,7 @@ function updateCarPosition() {
     activeKeys.has("a") ||
     activeKeys.has("A")
   ) {
-    carX -= 10;
+    carX -= 5;
     if (carX < 0) carX = 0;
   }
   if (
@@ -191,7 +189,7 @@ function updateCarPosition() {
     activeKeys.has("d") ||
     activeKeys.has("D")
   ) {
-    carX += 10;
+    carX += 5;
     if (carX > canvas.width - scale * image_width)
       carX = canvas.width - scale * image_width;
   }
@@ -199,6 +197,10 @@ function updateCarPosition() {
   lanes();
   drawCar(carX, carY);
 }
+
+drawRoad();
+lanes();
+drawCar(carX, carY);
 
 function restartGame() {
   const gameOverScreen = document.querySelector<HTMLDivElement>(".game-over")!;
@@ -220,3 +222,19 @@ document.addEventListener("keyup", (e) => {
 });
 
 restart.onclick = restartGame;
+start_button.addEventListener("click", () => {
+  start_button.style.display = "none";
+  gameLoop();
+});
+
+function drawScore() {
+  ctx.font = "16px Arial";
+  ctx.fillStyle = "#fff";
+  ctx.fillText("Score: " + _score, 8, 20);
+}
+
+function drawHighScore() {
+  ctx.font = "16px Arial";
+  ctx.fillStyle = "#fff";
+  ctx.fillText("High Score: " + highScore, 8, 40);
+}
