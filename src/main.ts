@@ -1,5 +1,28 @@
 import "./style.css";
 import car from "/car.png";
+import enemy_car_1 from "/enemy-car-1.png";
+import {
+  default as enemy_car_2,
+  default as enemy_car_3,
+} from "/enemy-car-2.png";
+import enemy_car_4 from "/enemy-car-4.png";
+import road from "/road-texture4.png";
+
+import {
+  CANVAS_HEIGHT,
+  CANVAS_WIDTH,
+  GAME_CONSTANTS,
+} from "./constants/constants";
+import { Coords } from "./types/types";
+import {
+  drawCar,
+  drawEnemy,
+  drawHighScore,
+  drawRoad,
+  drawScore,
+  getRandomCoords,
+} from "./utilities/canvas_utils";
+import { clamp, getRandomRange } from "./utilities/utils";
 
 const canvas = document.querySelector<HTMLCanvasElement>("#canvas")!;
 const score = document.querySelector<HTMLSpanElement>("#score")!;
@@ -13,14 +36,27 @@ const ctx = canvas.getContext("2d")!;
 const car_image = new Image();
 car_image.src = car;
 
-canvas.width = 600;
-canvas.height = 900;
+// enemy cars
+const enemy_cars_images = [
+  enemy_car_1,
+  enemy_car_2,
+  enemy_car_3,
+  enemy_car_4,
+].map((src) => {
+  const img = new Image();
+  img.src = src;
+  return img;
+});
 
-const scale = 0.15;
-const image_width = 270;
-const image_height = 470;
-let carX = canvas.width / 2 - (scale * image_width) / 2;
-let carY = canvas.height - scale * image_height;
+let road_img = new Image();
+road_img.src = road;
+
+canvas.width = CANVAS_WIDTH;
+canvas.height = CANVAS_HEIGHT;
+canvas.style.background = road;
+
+let carX = canvas.width / 2 - GAME_CONSTANTS.SCALED_WIDTH / 2;
+let carY = canvas.height - GAME_CONSTANTS.SCALED_HEIGHT;
 let gameSpeed = 1;
 let _score = 0;
 let animationId: number;
@@ -29,37 +65,7 @@ const activeKeys = new Set();
 score.innerText = String(_score);
 highScoreElement.innerText = String(highScore);
 
-function drawCar(x: number, y: number) {
-  ctx.drawImage(
-    car_image,
-    0,
-    0,
-    image_width,
-    image_height,
-    x,
-    y,
-    scale * 270,
-    scale * 470
-  );
-}
-
-function drawRoad() {
-  ctx.fillStyle = "#000";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-}
-
-function lanes() {
-  ctx.fillStyle = "#fff";
-  for (let i = 0; i * 40 < canvas.height; i++) {
-    ctx.fillRect(canvas.width * 0.3 - 5, i * 40, 10, 20);
-  }
-
-  for (let i = 0; i * 40 < canvas.height; i++) {
-    ctx.fillRect(canvas.width * 0.7 - 5, i * 40, 10, 20);
-  }
-}
-
-const enemy_cars: any[] = [];
+const enemy_cars: Coords[] = [];
 function generateEnemyCars() {
   for (let i = 0; i < 5; i++) {
     enemy_cars.push({
@@ -68,74 +74,31 @@ function generateEnemyCars() {
     });
   }
 }
-
 generateEnemyCars();
 
-function getRandomCoords(enemy_cars: any[]) {
-  let x: number;
-  let y: number;
-  let maxAttempts = 100;
-  let attempts = 0;
-
-  do {
-    x = getRandomRange(0, canvas.width - scale * image_width);
-    y = getRandomRange(-1 * canvas.height, 0);
-
-    attempts++;
-  } while (
-    attempts < maxAttempts ||
-    enemy_cars.some((car) => {
-      return (
-        x < car.x + scale * image_width &&
-        x + scale * image_width > car.x &&
-        y < car.y + scale * image_height &&
-        y + scale * image_height > car.y &&
-        y - scale * image_height > -1 * car.y - 400 &&
-        x - scale * image_width > car.x + 400
-      );
-    })
-  );
-  if (attempts >= maxAttempts) {
-    return;
-  }
-
-  return { x, y };
-}
-
-function getRandomRange(min: number, max: number): number {
-  return Math.floor(Math.random() * (max - min) + min);
-}
-
-function drawEnemy() {
+function moveEnemy(delta: number) {
   for (let i = 0; i < enemy_cars.length; i++) {
-    drawCar(enemy_cars[i].x, enemy_cars[i].y);
-  }
-}
-function clamp(value: number, min: number, max: number): number {
-  return Math.min(Math.max(value, min), max);
-}
-
-function moveEnemy() {
-  for (let i = 0; i < enemy_cars.length; i++) {
-    enemy_cars[i].y += clamp(1 * gameSpeed, 0, 3);
+    enemy_cars[i].y += clamp((1 * delta * gameSpeed) / 10, 0, 3);
     if (enemy_cars[i].y >= canvas.height) {
       _score++;
       enemy_cars[i].y =
-        getRandomCoords(enemy_cars)?.y || getRandomRange(-500, 0);
+        getRandomCoords(ctx, enemy_cars)?.y || getRandomRange(-500, 0);
       enemy_cars[i].x =
-        getRandomCoords(enemy_cars)?.x || getRandomRange(0, canvas.width);
+        getRandomCoords(ctx, enemy_cars)?.x ||
+        getRandomRange(0, canvas.width - GAME_CONSTANTS.SCALED_WIDTH);
     }
-    drawCar(enemy_cars[i].x, enemy_cars[i].y);
+    drawCar(ctx, enemy_cars_images[3], enemy_cars[i].x, enemy_cars[i].y);
   }
 }
 
 function detectCollsion() {
+  const { SCALED_HEIGHT, SCALED_WIDTH } = GAME_CONSTANTS;
   for (let i = 0; i < enemy_cars.length; i++) {
     if (
-      carX < enemy_cars[i].x + scale * image_width &&
-      carX + scale * image_width > enemy_cars[i].x &&
-      carY < enemy_cars[i].y + scale * image_height &&
-      carY + scale * image_height > enemy_cars[i].y
+      carX < enemy_cars[i].x + SCALED_WIDTH &&
+      carX + SCALED_WIDTH > enemy_cars[i].x &&
+      carY < enemy_cars[i].y + SCALED_HEIGHT &&
+      carY + SCALED_HEIGHT > enemy_cars[i].y
     ) {
       animationId && cancelAnimationFrame(animationId);
       gameSpeed = 0;
@@ -146,7 +109,7 @@ function detectCollsion() {
         localStorage.setItem("highScore", String(highScore));
       }
       gameOver();
-      drawCar(carX, carY);
+      drawCar(ctx, car_image, carX, carY);
     }
   }
 }
@@ -154,22 +117,26 @@ function detectCollsion() {
 //show game over screen
 function gameOver() {
   const gameOverScreen = document.querySelector<HTMLDivElement>(".game-over")!;
-  const finalScore = document.querySelector<HTMLSpanElement>("#final-score")!;
-  finalScore.innerText = String(_score);
+  score.innerText = String(_score);
   gameOverScreen.style.display = "block";
 }
 
+let last_time = Date.now();
 function gameLoop() {
+  if (isGameOver) return;
+  let current_time = Date.now();
+  let delta = current_time - last_time;
+  last_time = current_time;
+
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  drawRoad();
-  lanes();
+  drawRoad(ctx, road_img);
   updateCarPosition();
-  drawEnemy();
-  moveEnemy();
-  drawScore();
-  drawHighScore();
+  drawEnemy(ctx, enemy_cars, enemy_cars_images);
+  moveEnemy(delta);
+  drawScore(ctx, _score);
+  drawHighScore(ctx, highScore);
   detectCollsion();
-  gameSpeed *= 1.01;
+  if (_score % 10 === 0) gameSpeed *= 1.5;
   score.innerText = String(_score);
   animationId = requestAnimationFrame(gameLoop);
 }
@@ -190,17 +157,12 @@ function updateCarPosition() {
     activeKeys.has("D")
   ) {
     carX += 5;
-    if (carX > canvas.width - scale * image_width)
-      carX = canvas.width - scale * image_width;
+    if (carX > canvas.width - GAME_CONSTANTS.SCALED_WIDTH)
+      carX = canvas.width - GAME_CONSTANTS.SCALED_WIDTH;
   }
-  drawRoad();
-  lanes();
-  drawCar(carX, carY);
+  drawRoad(ctx, road_img);
+  drawCar(ctx, car_image, carX, carY);
 }
-
-drawRoad();
-lanes();
-drawCar(carX, carY);
 
 function restartGame() {
   const gameOverScreen = document.querySelector<HTMLDivElement>(".game-over")!;
@@ -227,14 +189,5 @@ start_button.addEventListener("click", () => {
   gameLoop();
 });
 
-function drawScore() {
-  ctx.font = "16px Arial";
-  ctx.fillStyle = "#fff";
-  ctx.fillText("Score: " + _score, 8, 20);
-}
-
-function drawHighScore() {
-  ctx.font = "16px Arial";
-  ctx.fillStyle = "#fff";
-  ctx.fillText("High Score: " + highScore, 8, 40);
-}
+drawRoad(ctx, road_img);
+drawCar(ctx, car_image, carX, carY);

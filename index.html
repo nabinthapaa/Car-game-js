@@ -7,18 +7,15 @@
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <div id="scorecard">
+    <canvas id="canvas"></canvas>
+    <div class="game-over">
       <h1>Score: <span id="score">0</span></h1>
       <h2>High Score: <span id="high-score">0</span></h2>
-    </div>
-    <div class="game-over">
-      <span id="final-score"></span>
       <button id="restart">Restart</button>
     </div>
     <div class="game-start">
       <button id="start">start</button>
     </div>
-    <canvas id="canvas"></canvas>
     <img id="car" src="car.png" alt="car" />
     <img id="enemy" src="car.png" alt="enemy" />
     <script src="src/main.ts" type="module"></script>

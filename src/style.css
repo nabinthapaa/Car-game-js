@@ -1,3 +1,8 @@
+body {
+  background: url("/desert.jpg");
+  background-repeat: no-repeat;
+  background-size: cover;
+}
 #car,
 #enemy {
   display: none;
@@ -6,6 +11,8 @@ canvas {
   display: block;
   margin: auto;
   border: 1px solid gray;
+  background: url("/road.png");
+  height: 98vh;
 }
 #scorecard {
   position: absolute;
@@ -22,6 +29,7 @@ canvas {
   transform: translate(-50%, -50%);
   text-align: center;
   display: none;
+  color: white;
 }
 
 #restart {
